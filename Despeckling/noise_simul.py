@@ -4,7 +4,7 @@ from scipy.integrate import quad
 import numpy as np
 import time
 import random
-import threading
+
 ## parameters, load an image ############
 # number of looks
 L=4.0
