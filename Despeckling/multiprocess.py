@@ -1,24 +1,27 @@
-from multiprocessing import Process, Queue
+# use pool to create subprocesses
+# use return to return the result of a process
+
+from multiprocessing import Process, Queue, set_start_method, Pool
 import os, time, random
 
-
-def write(i,q):
+def task(i):
     time.sleep(i/1000)
-    q.put(i)
+    return i
     
 
 
 if __name__=='__main__':
-    my_list=[12,345,9,3,24,123,23,43,545,12431,234,5432,452]
-    q = Queue()
+    set_start_method('spawn',True)
+
+    my_list=[12,345,9,3,24,123,23,43,545,1231,234,5432,452]
     L=len(my_list)
-    jobs=[]
+    p=Pool(L)
+    res=[]
     for i in range(L):
-        p = Process(target=write, args=(my_list[i],q,))
-        jobs.append(p)
-    for p in jobs:
-        p.start()
-    for p in jobs:
-        p.join()
-    r = [q.get() for i in range(L)]
-    print(r)
+        res.append(p.apply_async(task, args=(my_list[i],)))
+    print('waiting...')
+    p.close()
+    p.join()
+    for r in res:
+        print(r.get())
+    

@@ -34,30 +34,47 @@ max_r=max(r)
 tic=time.time()
 ## Generate the noise sequence of the probability density function ###################
 
-# 方法1 ######################
-# n=0
-# N=res[0]*res[1]
-# noises=[]
-# while n<N:
-#     t=random.uniform(0,max_n)     #生成[0,max_n]均匀分布随机数
-#     pt=p(t,L)             #计算对应密度函数值f(t)
-#     rt=random.uniform(0,max(r))   #生成[0,m]均匀分布随机数，m取概率密度函数的上确界
-#     if rt<=pt:           #如果随机数r小于f(t)，接纳该t并加入序列noises中
-#         n=n+1
-#         noises.append(t)
-
-# 优化 ############################
-lengh=300000
+global lengh
+lengh=10000
 
 N=res[0]*res[1]
 noises=np.array([])
+global LL
 LL=[L for i in range(lengh)]
 
-# while len(noises)<N:
-tn=np.random.rand(lengh)*max_n
-ptn=np.array(list(map(p,tn,LL))) #p: density function
-rtn=np.random.rand(lengh)*max_r
-noises=np.append(noises,tn[np.where(rtn<=ptn)])
+class MyThread(threading.Thread):
+    def __init__(self, func, name=''):
+        threading.Thread.__init__(self)
+        self.name = name
+        self.func = func
+        
+    def run(self):
+        self.result = self.func()
+
+    def get_result(self):
+        try:
+            return self.result
+        except Exception:
+            return None
+
+def func_for_multithread():
+    tn=np.random.rand(lengh)*max_n
+    ptn=np.array(list(map(p,tn,LL))) #p: density function
+    rtn=np.random.rand(lengh)*max_r
+    result=tn[np.where(rtn<=ptn)]
+    # print('thread %s ended.' % threading.current_thread().name)
+    return result
+
+threads = []
+for i in range(30):
+    t=MyThread(func_for_multithread,name='th '+str(i))
+    threads.append(t)
+for i in range(30):
+    threads[i].start()
+for i in range(30):
+    threads[i].join()
+
+noises=np.concatenate([threads[i].get_result() for i in range(30)])
 
 
 toc=time.time()

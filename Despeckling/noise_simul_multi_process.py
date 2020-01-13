@@ -16,7 +16,7 @@ def func_for_multiprocess(length,max_n,max_r,LL,q):
     rtn=np.random.rand(length)*max_r
     result=tn[np.where(rtn<=ptn)]
     q.put(result)
-    # print('fin')
+    print('fin')
 
 
 
@@ -46,26 +46,26 @@ if __name__=='__main__':
  
 
     # 继续优化版本 ##########################
-    length=10000
+    length=100000
 
     N=res[0]*res[1]
     noises=np.array([])
     LL=[L for i in range(length)]
 
-    # set_start_method('spawn',True)
+    set_start_method('spawn',True)
     q = Queue()
     res=[]
-    for i in range(3):
+    for i in range(4):
         p=Process(target=func_for_multiprocess, args=(length,max_n,max_r,LL,q))
         res.append(p)
         
     for p in res:
         p.start()
-    for p in res:
-        p.join()
+
     print('waiting...')
     noises=np.concatenate([q.get() for p in res])
-
+    for p in res:
+        p.join()
 
 
     toc=time.time()
