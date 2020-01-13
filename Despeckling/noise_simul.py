@@ -27,6 +27,8 @@ max_n=5
 
 global alpha
 alpha=(1/gamma(L))*(L**L)
+
+
 @jit(float64(float64))
 def p_function(F):
     return alpha*(F**(L-1))*(np.exp(-L*F))
@@ -78,6 +80,7 @@ print(s)
 plt.plot(f1,r,'r')
 plt.hist(noises,bins=100,density=True)
 plt.show()
+plt.savefig('hist.jpg')
 
 ## Image pre-process ######
 # img = plt.rgb2gray(img)
