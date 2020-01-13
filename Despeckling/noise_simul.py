@@ -4,32 +4,39 @@ from scipy.integrate import quad
 import numpy as np
 import time
 import random
+from numba import jit, float64
 
 ## parameters, load an image ############
+
 # number of looks
+global L
 L=4.0
+
 # img name
 img_name='airplane45.tif'
+
 # img resolution
 img = plt.imread(img_name)
 res = img.shape
 res = res[0:2]
+
 # max of simulated noise
-global max_n
 max_n=5
 
 ## speckle probability density function ##########
 
-def p(F,L):
-    return (1/gamma(L))*(L**L)*(F**(L-1))*(np.exp(-L*F))
+global alpha
+alpha=(1/gamma(L))*(L**L)
+@jit(float64(float64))
+def p_function(F):
+    return alpha*(F**(L-1))*(np.exp(-L*F))
 
 r=[]
 f1=np.linspace(0,max_n,1024)
 for i in f1:
-    r1=p(i,L)
+    r1=p_function(i)
     r.append(r1)
 
-global max_r
 max_r=max(r)
 tic=time.time()
 ## Generate the noise sequence of the probability density function ###################
@@ -47,26 +54,27 @@ tic=time.time()
 #         noises.append(t)
 
 # 优化 ############################
-lengh=300000
+length=300000
 
 N=res[0]*res[1]
 noises=np.array([])
-LL=[L for i in range(lengh)]
+# LL=[L for i in range(length)]
 
 # while len(noises)<N:
-tn=np.random.rand(lengh)*max_n
-ptn=np.array(list(map(p,tn,LL))) #p: density function
-rtn=np.random.rand(lengh)*max_r
+tn=np.random.rand(length)*max_n
+ptn=np.array(list(map(p_function,tn))) #p: density function
+rtn=np.random.rand(length)*max_r
 noises=np.append(noises,tn[np.where(rtn<=ptn)])
 
 
 toc=time.time()
+print(toc-tic)
 print(noises.shape)
 ## compare the sequence distribution with the probability density function ##
 
-s=quad(p,0,np.inf,args=(L))
+s=quad(p_function,0,np.inf)
 print(s)
-print(toc-tic)
+
 plt.plot(f1,r,'r')
 plt.hist(noises,bins=100,density=True)
 plt.show()
