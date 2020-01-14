@@ -6,7 +6,7 @@ import time
 import random
 from numba import jit, float64
 
-## parameters, load an image ############
+####################### parameters, load an image #######################################################
 
 # number of looks
 global L
@@ -23,7 +23,7 @@ res = res[0:2]
 # max of simulated noise
 max_n=5
 
-## speckle probability density function ##########
+##################### speckle probability density function ##########
 
 global alpha
 alpha=(1/gamma(L))*(L**L)
@@ -33,15 +33,15 @@ alpha=(1/gamma(L))*(L**L)
 def p_function(F):
     return alpha*(F**(L-1))*(np.exp(-L*F))
 
+tic=time.time()
 r=[]
-f1=np.linspace(0,max_n,1024)
-for i in f1:
-    r1=p_function(i)
-    r.append(r1)
-
+f1=np.linspace(0,max_n,1000)
+r=list(map(p_function,f1))
+toc=time.time()
+print('time0:',toc-tic)
 max_r=max(r)
 tic=time.time()
-## Generate the noise sequence of the probability density function ###################
+################ Generate the noise sequence of the probability density function ###################
 
 # 方法1 ######################
 # n=0
@@ -62,20 +62,34 @@ N=res[0]*res[1]
 noises=np.array([])
 # LL=[L for i in range(length)]
 
-# while len(noises)<N:
-tn=np.random.rand(length)*max_n
-ptn=np.array(list(map(p_function,tn))) #p: density function
-rtn=np.random.rand(length)*max_r
-noises=np.append(noises,tn[np.where(rtn<=ptn)])
+while len(noises)<N:
+    tn=np.random.rand(length)*max_n
+    ptn=np.array(list(map(p_function,tn))) #p: density function
+    rtn=np.random.rand(length)*max_r
+    noises=np.append(noises,tn[np.where(rtn<=ptn)])
 
+# 新想到的一种方法，事先计算pdf然后直接查找pdf值，需要修改f1的采样密度，可以算的非常快，但损失精度
+# tn=np.random.rand(length)*max_n
+# index=np.round(tn/(max_n/20000)).astype(np.int64)
+# index=np.clip(index,0,19999)
+# r=np.array(r)
+# ptn=r[index]
+# rtn=np.random.rand(length)*max_r
+# noises=np.append(noises,tn[np.where(rtn<=ptn)])
 
 toc=time.time()
-print(toc-tic)
+print('time1:',toc-tic)
 print(noises.shape)
-## compare the sequence distribution with the probability density function ##
 
-s=quad(p_function,0,np.inf)
-print(s)
+
+## compare the sequence distribution with the probability density function ##
+# calculate the integration of density function, should be 1
+# s=quad(p_function,0,np.inf)
+tic=time.time()
+s=quad(p_function,0,max_n)
+toc=time.time()
+print('s:',s)
+print('time2:',toc-tic)
 
 plt.plot(f1,r,'r')
 plt.hist(noises,bins=100,density=True)
