@@ -5,7 +5,7 @@ import numpy as np
 import time
 import random
 from numba import jit, float64
-
+from tensorflow.keras.preprocessing.image import img_to_array, load_img
 ####################### parameters, load an image #######################################################
 
 # number of looks
@@ -16,7 +16,7 @@ L=4.0
 img_name='airplane45.tif'
 
 # img resolution
-img = plt.imread(img_name)
+img = img_to_array(load_img(img_name,color_mode='grayscale'))
 res = img.shape
 res = res[0:2]
 
@@ -91,17 +91,20 @@ toc=time.time()
 print('s:',s)
 print('time2:',toc-tic)
 
-plt.plot(f1,r,'r')
-plt.hist(noises,bins=100,density=True)
-plt.show()
-plt.savefig('hist.jpg')
+# plt.plot(f1,r,'r')
+# plt.hist(noises,bins=100,density=True)
+# plt.show()
+# plt.savefig('hist.jpg')
 
 ## Image pre-process ######
 # img = plt.rgb2gray(img)
 # img = plt.im2double(img)
+img=img[:,:,0]
 # ## add noise #############
-# noises=noises/max(noises)
-# noises=np.reshape(noises,res)
-# img_with_speck = img*noises
-# plt.imshow(img_with_speck*2)
-# plt.show()
+noises=noises[:65536]
+noises=noises/np.max(noises)
+noises=np.reshape(noises,res)
+img_with_speck = img*noises
+plt.imshow(img_with_speck*2,cmap='gray')
+plt.show()
+plt.savefig('noised_py.jpg')

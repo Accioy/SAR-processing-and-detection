@@ -8,8 +8,12 @@ from scipy.special import gamma
 from scipy.integrate import quad
 from numba import jit, float64
 
+@jit(float64(float64,float64,float64))
+def _p_function(alpha, L, F):
+    return alpha*(F**(L-1))*(np.exp(-L*F))
+
 class noise_simul():
-    def __init__(self, img, L):
+    def __init__(self, img, L=4):
         '''
         img: numpy array, H*W*1
         '''
@@ -22,9 +26,9 @@ class noise_simul():
         self.s = self.integral() #integration of pdf, should be nearly 1
         self.max_r = self.max_p()
         self.length =300000 # L=4的时候，这个长度的随机仿真可以满足65536的随机序列需求。如果调整L值，这个值也需要调整
-    @jit(float64(float64))
+    
     def p_function(self,F):
-        return self.alpha*(F**(self.L-1))*(np.exp(-self.L*F))
+        return _p_function(self.alpha, self.L, F)
     def max_p(self):
         f1=np.linspace(0,self.max_n,1000)
         r=list(map(self.p_function,f1))
@@ -45,10 +49,9 @@ class noise_simul():
 
     def __call__(self):
         # img = plt.rgb2gray(self.img) # 理论上这里调用的时候已经gray了
-        img = plt.im2double(self.img)
         noises=self.simul_noise()
         noises=noises/np.max(noises)
-        img_with_speck = img*noises
+        img_with_speck = self.img*noises
         return img_with_speck
         
 
