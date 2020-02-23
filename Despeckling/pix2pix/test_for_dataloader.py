@@ -45,10 +45,7 @@ for (imgs_n, imgs_o) in datalo.load_batch(batch_size=3, is_testing=False):
     fig, axs = plt.subplots(r, c, figsize=(20, 30))
     for i in range(r): #batch
         for j in range(c):
-            if j==0:
-                axs[i,j].imshow(gen_imgs[j][i][:,:,0]*2,cmap='gray')
-            else:
-                axs[i,j].imshow(gen_imgs[j][i][:,:,0],cmap='gray')
+            axs[i,j].imshow(gen_imgs[j][i][:,:,0],cmap='gray')
             axs[i, j].set_title(titles[j])
             axs[i,j].axis('off')
     fig.savefig("testload%d.png" % batch_i)

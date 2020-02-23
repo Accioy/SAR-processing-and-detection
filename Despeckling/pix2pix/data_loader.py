@@ -75,7 +75,7 @@ class DataLoader():
         imgs_n = [] #noised image
         
         for img_name in batch_images:
-            img_o = img_to_array(load_img(os.path.join(self.dataset_dir,img_name),color_mode='grayscale'))
+            img_o = img_to_array(load_img(os.path.join(self.dataset_dir,img_name),color_mode='grayscale',target_size=self.img_res))
             noise_simulation=noise_simul(img_o)
             img_n=noise_simulation()
             # img_n=img_n[:,:,0]
@@ -103,7 +103,7 @@ class DataLoader():
             batch_o = image_names[i*batch_size:(i+1)*batch_size]
             imgs_o, imgs_n = [], []
             for img_o in batch_o:
-                img_o = img_to_array(load_img(os.path.join(self.dataset_dir,img_o),color_mode='grayscale'))
+                img_o = img_to_array(load_img(os.path.join(self.dataset_dir,img_o),color_mode='grayscale',target_size=self.img_res))
                 noise_simulation=noise_simul(img_o)
                 img_n=noise_simulation()
 

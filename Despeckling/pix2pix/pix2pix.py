@@ -19,16 +19,15 @@ import tensorflow as tf
 
 
 class Pix2Pix():
-    def __init__(self):
+    def __init__(self,datadir):
         # Input shape
         self.img_rows = 256
         self.img_cols = 256
-        self.rgb_channels = 3
-        self.gray_channels = 1
-        self.rgb_shape = (self.img_rows, self.img_cols, self.rgb_channels)
-        self.gray_shape = (self.img_rows, self.img_cols, self.gray_channels)
+        self.channels = 1
+        self.img_shape = (self.img_rows, self.img_cols, self.channels)
         # Configure data loader
-        self.data_loader = DataLoader(img_res=(self.img_rows, self.img_cols))
+        self.datadir=datadir
+        self.data_loader = DataLoader(datadir,img_res=(self.img_rows, self.img_cols))
 
 
         # Calculate output shape of D (PatchGAN)
@@ -56,19 +55,19 @@ class Pix2Pix():
         self.generator = self.build_generator()
 
         # Input images and their conditioning images
-        img_A = Input(shape=self.rgb_shape) #op
-        img_B = Input(shape=self.gray_shape) #sar
+        img_n = Input(shape=self.img_shape)
+        img_o = Input(shape=self.img_shape)
 
-        # By conditioning on B generate a fake version of A
-        fake_A = self.generator(img_B)
+        # Generate noise-free images from noised img
+        fake_A = self.generator(img_n)
 
         # For the combined model we will only train the generator
         self.discriminator.trainable = False
 
         # Discriminators determines validity of translated images / condition pairs
-        valid = self.discriminator([fake_A, img_B])
+        validity = self.discriminator([fake_A, img_n])
 
-        self.combined = Model(inputs=[img_A, img_B], outputs=[valid, fake_A])
+        self.combined = Model(inputs=[img_n, img_o], outputs=[validity, fake_A])
         self.combined.compile(loss=['mse', 'mae'],
                               loss_weights=[1, 100],
                               optimizer=optimizer)
@@ -95,7 +94,7 @@ class Pix2Pix():
             return u
 
         # Image input
-        d0 = Input(shape=self.gray_shape)
+        d0 = Input(shape=self.img_shape)
 
         # Downsampling
         d1 = conv2d(d0, self.gf, bn=False)
@@ -115,7 +114,7 @@ class Pix2Pix():
         u6 = deconv2d(u5, d1, self.gf)
 
         u7 = UpSampling2D(size=2)(u6)
-        output_img = Conv2D(self.rgb_channels, kernel_size=4, strides=1, padding='same', activation='tanh')(u7)
+        output_img = Conv2D(self.channels, kernel_size=4, strides=1, padding='same', activation='tanh')(u7)
 
         return Model(d0, output_img)
 
@@ -129,8 +128,8 @@ class Pix2Pix():
                 d = BatchNormalization(momentum=0.8)(d)
             return d
 
-        img_A = Input(shape=self.rgb_shape)
-        img_B = Input(shape=self.gray_shape)
+        img_A = Input(shape=self.img_shape)
+        img_B = Input(shape=self.img_shape)
 
         # Concatenate image and conditioning image by channels to produce input
         combined_imgs = Concatenate(axis=-1)([img_A, img_B])
@@ -153,18 +152,18 @@ class Pix2Pix():
         fake = np.zeros((batch_size,) + self.disc_patch)
 
         for epoch in range(epochs):
-            for batch_i, (imgs_A, imgs_B) in enumerate(self.data_loader.load_batch(batch_size)):
+            for batch_i, (imgs_n, imgs_o) in enumerate(self.data_loader.load_batch(batch_size)):
 
                 # ---------------------
                 #  Train Discriminator
                 # ---------------------
 
-                # Condition on B and generate a translated version
-                fake_A = self.generator.predict(imgs_B)
+                # generated noise-free img
+                fake_A = self.generator.predict(imgs_n)
 
                 # Train the discriminators (original images = real / generated = Fake)
-                d_loss_real = self.discriminator.train_on_batch([imgs_A, imgs_B], valid)
-                d_loss_fake = self.discriminator.train_on_batch([fake_A, imgs_B], fake)
+                d_loss_real = self.discriminator.train_on_batch([imgs_o, imgs_n], valid)
+                d_loss_fake = self.discriminator.train_on_batch([fake_A, imgs_n], fake)
                 d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
  
                 # -----------------
@@ -172,11 +171,10 @@ class Pix2Pix():
                 # -----------------
 
                 # Train the generators
-                # 根据line74 outputs=[valid, fake_A]，（此处valid是D的输出，下面valid是1
-                # 以及line75 self.combined.compile(loss=['mse', 'mae'],
-                # 可知使用mse计算D输出与[1]之间损失，使用mae计算fake_A和imgs_A之间的损失，
-                # 二者权重关系在cmopile中定义
-                g_loss = self.combined.train_on_batch([imgs_A, imgs_B], [valid, imgs_A])
+                # Inputs: [imgs_n, imgs_o]
+                # Outputs: [validity, fake_A]
+                # Labels: [valid, imgs_o], where variable vaild is all 1 matrix
+                g_loss = self.combined.train_on_batch([imgs_n, imgs_o], [valid, imgs_o])
 
                 elapsed_time = datetime.datetime.now() - start_time
                 # Plot the progress
@@ -184,7 +182,7 @@ class Pix2Pix():
                                                                         batch_i, self.data_loader.n_batches,
                                                                         d_loss[0], 100*d_loss[1],
                                                                         g_loss[0],
-                                                                        elapsed_time))
+                                                                        elapsed_time)) 
 
                 # If at save interval => save generated image samples
                 if batch_i % sample_interval == 0:
@@ -198,27 +196,23 @@ class Pix2Pix():
         os.makedirs('images/', exist_ok=True)
         r, c = 3, 3
 
-        imgs_A, imgs_B = self.data_loader.load_data(batch_size=3, is_testing=True)
-        fake_A = self.generator.predict(imgs_B)
+        imgs_n,imgs_o = self.data_loader.load_data(batch_size=3, is_testing=True)
+        fake_A = self.generator.predict(imgs_n)
 
         # gen_imgs = np.concatenate([imgs_B, fake_A, imgs_A])
 
         # Rescale images 0 - 1
         # gen_imgs = 0.5 * gen_imgs + 0.5
-        imgs_B =0.5 * imgs_B + 0.5
-        imgs_A=0.5 * imgs_A + 0.5
+        imgs_n =0.5 * imgs_n + 0.5
+        imgs_o=0.5 * imgs_o + 0.5
         fake_A=0.5 * fake_A + 0.5
-        print('sample',imgs_B.shape,imgs_A.shape,fake_A.shape)
-        gen_imgs = [imgs_B,fake_A,imgs_A]
+        gen_imgs = [imgs_n,fake_A,imgs_o]
 
         titles = ['Condition', 'Generated', 'Original']
-        fig, axs = plt.subplots(r, c)
+        fig, axs = plt.subplots(r, c, figsize=(20, 30))
         for i in range(r): #batch
             for j in range(c):
-                if j ==0:
-                    axs[i,j].imshow(gen_imgs[j][i][:,:,0],cmap='gray')
-                else:
-                    axs[i,j].imshow(gen_imgs[j][i])
+                axs[i,j].imshow(gen_imgs[j][i][:,:,0],cmap='gray')
                 axs[i, j].set_title(titles[j])
                 axs[i,j].axis('off')
         fig.savefig("images/%d_%d.png" % (epoch, batch_i))
@@ -232,5 +226,6 @@ if __name__ == '__main__':
     gpus = tf.config.experimental.list_physical_devices(device_type='GPU')
     for gpu in gpus:
         tf.config.experimental.set_memory_growth(gpu, True)
-    gan = Pix2Pix()
+    datadir='C:\\travail\\dataset\\UCMerced_LandUse\\Images'
+    gan = Pix2Pix(datadir)
     gan.train(epochs=200, batch_size=16, sample_interval=10)

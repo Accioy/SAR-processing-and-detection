@@ -1,3 +1,6 @@
 *.vscode
 *.zip
+*.h5
+*.png
+*.tif
 Despeckling/UCMerced_LandUse/
