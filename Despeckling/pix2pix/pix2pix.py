@@ -188,6 +188,7 @@ class Pix2Pix():
                 if batch_i % sample_interval == 0:
                     self.sample_images(epoch, batch_i)
             if epoch % 5==0:
+                self.discriminator.save('discriminator%d.h5' % epoch)
                 self.generator.save('generator%d.h5' % (epoch))
                 self.combined.save('combined%d.h5' % epoch)
 
