@@ -3,4 +3,10 @@
 *.h5
 *.png
 *.tif
+*.jpg
+*.jpeg
+sr_ssdd/
+.vscode/
 Despeckling/UCMerced_LandUse/
+*caches*
+*dataset*

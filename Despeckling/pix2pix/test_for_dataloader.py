@@ -1,8 +1,9 @@
 from data_loader import DataLoader
 import matplotlib.pyplot as plt
 
-
-
+'''
+unit test for dataloader and noise simulator
+'''
 
 datadir='C:\\travail\\dataset\\UCMerced_LandUse\\Images'
 
@@ -48,7 +49,7 @@ for (imgs_n, imgs_o) in datalo.load_batch(batch_size=3, is_testing=False):
             axs[i,j].imshow(gen_imgs[j][i][:,:,0],cmap='gray')
             axs[i, j].set_title(titles[j])
             axs[i,j].axis('off')
-    fig.savefig("testload%d.png" % batch_i)
+    fig.savefig("testload/testload%d.png" % batch_i)
     plt.close()
     if batch_i>20:
         break

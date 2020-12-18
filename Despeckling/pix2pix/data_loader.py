@@ -61,14 +61,26 @@ class DataLoader():
     def __init__(self, dataset_dir, img_res=(256, 256)):
         self.img_res = img_res
         self.dataset_dir = dataset_dir
-        
-    def load_data(self, batch_size=3, is_testing=False): #测试用，随机采样一组数据返回
+
+    def load_sar(self):
+        image_names = os.listdir(self.dataset_dir)
+        imgs = []
+        for img_name in image_names:
+            img = img_to_array(load_img(os.path.join(self.dataset_dir,img_name),color_mode='grayscale',target_size=self.img_res))
+            imgs.append(img)
+        imgs = np.array(imgs)/127.5 - 1.
+        return imgs
+
+    def load_data(self, batch_size=3, load_set=False, is_testing=False): #测试用，随机采样一组数据返回
         data_type = "train" if not is_testing else "test"
         listfile = data_type+'set.txt'
         image_names = [l.strip().split(None, 1)[0] for l in open(os.path.join(self.dataset_dir, listfile)).readlines()]
         # image_names.sort() # 理论上txt文件里已经sort过了
 
-        batch_images = np.random.choice(image_names, size=batch_size)
+        if load_set:
+            batch_images=image_names
+        else:
+            batch_images = np.random.choice(image_names, size=batch_size)
         
 
         imgs_o = [] #original image
@@ -91,7 +103,7 @@ class DataLoader():
         imgs_o = np.array(imgs_o)/127.5 - 1.
         imgs_n = np.array(imgs_n)/127.5 - 1.
         return imgs_n,imgs_o
-
+    
     def load_batch(self, batch_size=1, is_testing=False): #训练用
         data_type = "train" if not is_testing else "test"
         listfile = data_type+'set.txt'

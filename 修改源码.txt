@@ -1,0 +1,5 @@
+\tf2\lib\site-packages\tensorflow_addons\activations\rrelu.py
+line 28:
+    # rng: Optional[tf.random.Generator] = None,
+    rng: Optional[tf.random.experimental.Generator] = None,
+为了兼容tensorflow_addons包
